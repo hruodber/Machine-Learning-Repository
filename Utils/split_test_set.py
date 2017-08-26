@@ -43,4 +43,34 @@ housing_with_id = housing.reset_index()
 
 train_set,test_set =split_train_test_by_id(housing_with_id,0.2,"index")
 
-train_set , test_set = split_train_test(housing, 0.2)
+#agora, o income no caso é muito importante para a predicao do preco das casas
+# preciso que haja um numero representativo dos diversos valores possíveis
+# ou níveis de income no test-set. A estratificação desta caracteristica tem
+# que garantir que exista suficientes instancias em cada estrato, de forma que
+# não haja nenhuma tendencia no test-set
+# vou criar uma categoria income, limitada por 1.5 ( limitando o numero de cate
+#gorias ) , arrendondar ( para ter discretas), e juntar todas que forem maiores
+#que 5 a categoria 5
+
+housing["income_cat"]= np.ceil(housing["median_income"]/1.5)
+housing["income_cat"].where(housing["income_cat"] <5,5.0,inplace=True)
+
+#Agora é possivel fazer uma amostragem estratificada pela categoria income
+
+from sklearn.mode_selection import StratifiedShuffleSplit
+
+split  = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=42)
+for train_index, test_index in split.split(housing, housing["income_cat"]):
+    strat_train_set= housing.loc[train_index]
+    strat_test_set=housing.loc[test_index]
+    
+# Checando a proporçao das instancias de cada categoria 
+
+housing["income_cat"].value_counts()/len(housing)
+
+# ja nao preciso mais desta coluna nos dados
+
+for set_ in (strat_train_set , strat_test_set):
+    set_.drop("income_cat", axis=1, inplace=True)
+    
+    
